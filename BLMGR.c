@@ -170,7 +170,7 @@ static u8  BLMGR_TxFrameReceiver;
 static u32 BLMGR_CrcKey;
 static u8  BLMGR_CommState;
 static u8  BLMGR_CommTimeOutCounter;
-static u8  BLMGR_TxBattLevel;
+u8  BLMGR_TxBattLevel;
 #if (COMM_CINFIG == SLAVE_COMM)
 static u8  BLMGR_TxDirection;
 static u8  BLMGR_TxSpeedDegree;
@@ -197,9 +197,6 @@ void BLMGR_StartDevice(void)
 void BLMGR_Test(void)
 {
     BuzzerSound();
-
-
-
 }
 
 /*********************************************************************************/
@@ -620,7 +617,7 @@ static void HandShakingStateMachine(void)
             BLMGR_HandShakeState = (u8)HANDSHAKE_STATE_SEND_ID_FRAME;
             #elif(COMM_CINFIG == SLAVE_COMM)
             /*the Device will be mastered by the other device*/
-            BLTD_StartReceivingData(BLMGR_DataRxBuffer,ID_FRAME_LENGTH,RxBufferDnCallBackNotif);
+            BLTD_StartReceivingData(BLMGR_DataRxBuffer,ID_FRAME_LENGTH,&RxBufferDnCallBackNotif);
             BLMGR_HandShakeState = (u8)HANDSHAKE_STATE_RECV_ID_FRAME;
             #else
             /*Wrong Config, State in Idle*/
@@ -639,7 +636,7 @@ static void HandShakingStateMachine(void)
             BLMGR_HandShakeState = (u8)HANDSHAKE_STATE_RECV_ID_FRAME;
             #elif(COMM_CINFIG == SLAVE_COMM)
             /*Start receiving Validation frame*/
-            BLTD_StartReceivingData(BLMGR_DataRxBuffer,VAL_FRAME_LENGTH,RxBufferDnCallBackNotif);
+            BLTD_StartReceivingData(BLMGR_DataRxBuffer,VAL_FRAME_LENGTH,&RxBufferDnCallBackNotif);
             BLMGR_ExpectedReceivedFrame = FRAME_TYPE_VAL_FRAME;
             BLMGR_HandShakeState = HANDSHAKE_STATE_RECV_VAL_FRAME;
             #else
@@ -668,7 +665,7 @@ static void HandShakingStateMachine(void)
                     BLMGR_HandShakeState = (u8)HANDSHAKE_STATE_HANDSHAKING_DONE;
                     #elif(COMM_CINFIG == SLAVE_COMM)
                     /*Start receiving validation frame*/
-                    BLTD_StartReceivingData(BLMGR_DataRxBuffer,VAL_FRAME_LENGTH,RxBufferDnCallBackNotif);
+                    BLTD_StartReceivingData(BLMGR_DataRxBuffer,VAL_FRAME_LENGTH,&RxBufferDnCallBackNotif);
                     BLMGR_HandShakeState = (u8)HANDSHAKE_STATE_RECV_VAL_FRAME;
                     #else
                     /*Wrong Config, State in Idle*/
@@ -733,7 +730,7 @@ static void HandShakingStateMachine(void)
                     #elif(COMM_CINFIG == SLAVE_COMM)
                     BLMGR_HandShakeState = (u8)HANDSHAKE_STATE_SEND_VAL_FRMAE;
                     /*Start Receiving validation frame*/
-                    BLTD_StartReceivingData(BLMGR_DataRxBuffer,VAL_FRAME_LENGTH,RxBufferDnCallBackNotif);
+                    BLTD_StartReceivingData(BLMGR_DataRxBuffer,VAL_FRAME_LENGTH,&RxBufferDnCallBackNotif);
                     #else
                     /*Wrong Config, State in Idle*/
                     /*To do: Managing dev Errors*/
@@ -787,7 +784,7 @@ static void CommStateMachine(void)
             /*Start Receiving data frame*/
             BLMGR_ExpectedReceivedFrame = FRAME_TYPE_DATA_FRAME;
             BLMGR_CommState = COMM_STATE_RECV_DATA_FRAME;
-            BLTD_StartReceivingData(BLMGR_DataRxBuffer,DATA_FRAME_LENGTH,RxBufferDnCallBackNotif);
+            BLTD_StartReceivingData(BLMGR_DataRxBuffer,DATA_FRAME_LENGTH,&RxBufferDnCallBackNotif);
             #else
             /*Wrong Config, State in Idle*/
             /*To do: Managing dev Errors*/
@@ -1150,14 +1147,14 @@ static void UpdateDataFrame(void)
     SECR_GnerateCrc(TempBuffer4,(u16)1, &Crc1,BLMGR_CrcKey);
     #elif(COMM_CINFIG == SLAVE_COMM)
     /*Set paramter length*/
-    BLMGR_DataTxBuffer[PARAM_LENGTH_IDX] = 2u;
+    BLMGR_DataTxBuffer[PARAM_LENGTH_IDX] = (u8)2;
     /*Set Direction*/
     BLMGR_DataTxBuffer[DIRECTION_IDX]= BLMGR_TxDirection;
     /*Set Speed degree*/
     BLMGR_DataTxBuffer[SPEED_DEGREE_IDX]= BLMGR_TxSpeedDegree;
     /*Calculate CRC*/
-    MemCpy(TempBuffer4,&BLMGR_DataTxBuffer[DIRECTION_IDX],2);
-    SECR_GnerateCrc(TempBuffer,2u, &Crc,BLMGR_CrcKey);
+    MemCpy(TempBuffer4,&BLMGR_DataTxBuffer[BATT_LEVEL_IDX],(u16)2);
+    SECR_GnerateCrc(TempBuffer4,2u, &Crc1,BLMGR_CrcKey);
     #else
     /*Wrong Config, State in Idle*/
     /*To do: Managing dev Errors*/
@@ -1201,8 +1198,8 @@ static u8 CheckDataFrame(void)
                 TempBuffer5[0x01] = BLMGR_DataRxBuffer[SPEED_DEGREE_IDX];
                 SECR_GnerateCrc(TempBuffer5, (u16)2, &GenCrc,BLMGR_CrcKey);
                 #elif(COMM_CINFIG == SLAVE_COMM)
-                TempBuffer[0x00] = BLMGR_DataRxBuffer[BATT_LEVEL_IDX];
-                SECR_GnerateCrc(TempBuffer5, 1u, &GenCrc,BLMGR_CrcKey);
+                TempBuffer[0x00u] = BLMGR_DataRxBuffer[BATT_LEVEL_IDX];
+                SECR_GnerateCrc(TempBuffer5, (u16)1, &GenCrc,BLMGR_CrcKey);
                 #else
                 /*Wrong Config, State in Idle*/
                 /*To do: Managing dev Errors*/
@@ -1709,14 +1706,16 @@ static void MemSet(u8* DesPtr, u8 ConstVal, u16 Length)
 #if (COMM_CINFIG == SLAVE_COMM)
 static u8 MemCmp(const u8* Src1Ptr,const u8* Src2Ptr,u16 Length)
 {
-    u8 IsEqual = 1;
-    u8 LoopIndex;
-    for (LoopIndex = 0; (LoopIndex < Length) && (IsEqual == 1) ; LoopIndex ++)
+    u8 IsEqual = 1u;
+    u8 LoopIndex__1;
+    for (LoopIndex__1 = 0u; (LoopIndex__1 < Length) && (IsEqual == 1u) ; LoopIndex__1 ++)
     {
-        if(*(Src1Ptr + LoopIndex) != *(Src2Ptr + LoopIndex))
+        if(*(Src1Ptr += LoopIndex__1) != *(Src2Ptr += LoopIndex__1))
         {
-            IsEqual = 0;
+            IsEqual = 0u;
         }
+        Src1Ptr -= LoopIndex__1;
+        Src2Ptr -= LoopIndex__1;
     }
     return IsEqual;
 }
@@ -1768,41 +1767,41 @@ static u8 CheckCrc(void)
 #if (COMM_CINFIG == SLAVE_COMM)
 static u8 GetCrcKey(void)
 {
-    u8 IsFrameValid;
-    u16 RxCrc;
-    u16 GenCrc;
-    static u8 TempBuffer[MAX_DATA_BUFFER_LENGTH];
+    u8 IsFrameValid_8;
+    u16 RxCrc8;
+    u16 GenCrc8;
+    static u8 TempBuffer8[MAX_DATA_BUFFER_LENGTH];
     u8 LoopTerminated;
-    u32 LoopIndex;
-    RxCrc = 0x00;
-    RxCrc = BLMGR_DataRxBuffer[FRAME_VAL_CRC_IDX];
-    RxCrc |= ((u16)BLMGR_DataRxBuffer[FRAME_VAL_CRC_IDX +1]) << 8;
-    TempBuffer[0x00] = TX_OS_TYPE;
-    TempBuffer[0x01] = TX_DEV_TYPE;
-    MemCpy(&TempBuffer[0x02],BLMGR_TxDevicName,BLMGR_TxDeviceNameLength);
-    LoopTerminated = 0;
-    for (LoopIndex = 0; (LoopIndex < 0xffff) && (LoopTerminated == 0); LoopIndex ++)
+    u32 LoopIndex8;
+    RxCrc8 = 0x00u;
+    RxCrc8 = BLMGR_DataRxBuffer[FRAME_VAL_CRC_IDX];
+    RxCrc8 |= (u16)(((u16)BLMGR_DataRxBuffer[FRAME_VAL_CRC_IDX +1u]) << 8);
+    TempBuffer8[0x00u] = TX_OS_TYPE;
+    TempBuffer8[0x01u] = TX_DEV_TYPE;
+    MemCpy(&TempBuffer8[0x02u],BLMGR_TxDevicName,(u16)BLMGR_TxDeviceNameLength);
+    LoopTerminated = 0u;
+    for (LoopIndex8 = 0u; (LoopIndex8 < 0xffffu) && (LoopTerminated == 0u); LoopIndex8 ++)
     {
-        SECR_GnerateCrc(TempBuffer,BLMGR_TxDeviceNameLength + 2, &GenCrc,(LoopIndex | 0x10000));
-        if(GenCrc == RxCrc)
+        SECR_GnerateCrc(TempBuffer8,(u16)((u16)BLMGR_TxDeviceNameLength + 2u), &GenCrc8,((u32)(LoopIndex___ | 0x10000u)));
+        if(GenCrc8 == RxCrc8)
         {
-            BLMGR_CrcKey = LoopIndex;
-            LoopTerminated = 1;
+            BLMGR_CrcKey = LoopIndex8;
+            LoopTerminated = 1u;
         }
     }
-    if(LoopTerminated == 1)
+    if(LoopTerminated == 1u)
     {
         /*Done and CRC Key Found*/
         BLMGR_ErrorState = ERRH_NO_ERROR;
-        IsFrameValid = 1;
+        IsFrameValid_8 = 1u;
     }
     else
     {
         /*Crc Error Found*/
         BLMGR_ErrorState = ERRH_CRC_ERROR;
-        IsFrameValid = 0;
+        IsFrameValid_8 = 0u;
     }
-    return IsFrameValid;
+    return IsFrameValid_8;
 }
 #endif
 /*********************************************************************************/

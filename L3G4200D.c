@@ -334,7 +334,7 @@ static u16 u16ReadAxisData(u8 AxisMask);
 static u8 u8CheckAxisIsEnabled(u8 u8AxisMask);
 static void vidInitFilters(void);
 #if (u8SELF_AXIS_MOV == ON)
-static void vidInitSelectiveAxisMovement(void);
+void vidInitSelectiveAxisMovement(void);
 #endif
 /*****************************************************************************************************/
 /* Global Services */
@@ -542,21 +542,21 @@ static u16 u16ReadAxisData(u8 AxisMask)
     {
         L3G4200D_READ_OUT_X_L(&u8RegData1);
         L3G4200D_READ_OUT_X_H(&u8RegData2);
-        u16AxisData = u8RegData1 | ((u16)(((8u)(u8RegData2)<<8u)));
+        u16AxisData = ((u8RegData1) | (u16)(((u16)u8RegData2)<<8u));
     }
     break;
     case u8NEW_DATA_AVAILABEL_Y_MASK:
     {
         L3G4200D_READ_OUT_Y_L(&u8RegData1);
         L3G4200D_READ_OUT_Y_H(&u8RegData2);
-        u16AxisData = u8RegData1 | ((u16)(((8u)(u8RegData2)<<8u)));
+        u16AxisData = ((u8RegData1) | (u16)(((u16)u8RegData2)<<8u));
     }
     break;
     case u8NEW_DATA_AVAILABEL_Z_MASK:
     {
         L3G4200D_READ_OUT_Z_L(&u8RegData1);
         L3G4200D_READ_OUT_Z_H(&u8RegData2);
-        u16AxisData = u8RegData1 | ((u16)(((8u)(u8RegData2)<<8u)));
+        u16AxisData = ((u8RegData1) | (u16)(((u16)u8RegData2)<<8u));
     }
     break;
     default:
@@ -682,7 +682,7 @@ static void vidInitFilters(void)
 }
 /*****************************************************************************************************/
 #if(u8SELF_AXIS_MOV == ON)
-static void vidInitSelectiveAxisMovement(void)
+void vidInitSelectiveAxisMovement(void)
 {
     u8 u8RegData_2 = 0u;
     u8 u8Threshold;
